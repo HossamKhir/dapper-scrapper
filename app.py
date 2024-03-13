@@ -9,11 +9,13 @@ from multiprocessing import Pool
 from os import cpu_count
 
 from bs4 import BeautifulSoup
+from flask import Flask, jsonify, request
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 CHROME_OPTIONS = Options()
 CHROME_OPTIONS.add_argument("--headless")
+app = Flask(__name__)
 
 
 def initialize_webdriver():
@@ -75,6 +77,15 @@ def collect_patterns_from_url(
 def count_patterns_in_urls(
     urls: list[str], patterns: list[str]
 ) -> tuple[dict[str, int], list[str]]:
+    """_summary_
+
+    :param urls: _description_
+    :type urls: list[str]
+    :param patterns: _description_
+    :type patterns: list[str]
+    :return: _description_
+    :rtype: tuple[dict[str, int], list[str]]
+    """
     result_list = []
     errors = []
     for url in urls:
@@ -117,23 +128,29 @@ def count_patterns_in_urls_concurrently(
     return dict(Counter(result_list)), errors
 
 
+@app.route("/count-patterns", methods=["POST"])
+def count_patterns():
+    data = request.get_json()
+
+    # Validate input JSON
+    if not data or "accounts" not in data or "patterns" not in data:
+        return (
+            jsonify({"error": "Invalid input format, requires accounts and patterns."}),
+            400,
+        )
+
+    urls = data["accounts"]
+    patterns = data["patterns"]
+
+    counter, errors = count_patterns_in_urls(urls, patterns)
+
+    response = {
+        "counter": counter,  # A dictionary of patterns and their counts
+        "errors": errors,  # A list of errors, if any occurred
+    }
+
+    return jsonify(response), 200
+
+
 if __name__ == "__main__":
-    urls = [
-        "https://twitter.com/Mr_Derivatives",
-        "https://twitter.com/warrior_0719",
-        "https://twitter.com/CordovaTrades",
-        "https://twitter.com/ChartingProdigy",
-        "https://twitter.com/allstarcharts",
-        "https://twitter.com/yuriymatso",
-        "https://twitter.com/TriggerTrades",
-        "https://twitter.com/AdamMancini4",
-        "https://twitter.com/Barchart",
-        "https://twitter.com/RoyLMattox",
-    ]
-    patterns = ["$TSLA", "$SOFI", "$APPL", "$SPX"]
-    begin = time.time()
-    res = count_patterns_in_urls_concurrently(urls, patterns)
-    end = time.time()
-    print(end - begin)
-    # res = count_patterns_in_urls(urls, patterns)
-    print(res)
+    app.run(debug=True)
