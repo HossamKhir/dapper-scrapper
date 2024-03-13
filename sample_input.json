@@ -16,5 +16,6 @@
         "$SOFI",
         "$APPL",
         "$SPX"
-    ]
+    ],
+    "interval": 15
 }

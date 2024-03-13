@@ -1,12 +1,13 @@
 #! /usr/bin/env python3
 """
 """
+import json
 import re
+import threading
 import time
 from collections import Counter
 from functools import partial
-from multiprocessing import Pool
-from os import cpu_count
+from multiprocessing import Pool, cpu_count
 
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, request
@@ -86,6 +87,7 @@ def count_patterns_in_urls(
     :return: _description_
     :rtype: tuple[dict[str, int], list[str]]
     """
+    result_dict = {pattern: 0 for pattern in patterns}
     result_list = []
     errors = []
     for url in urls:
@@ -94,7 +96,9 @@ def count_patterns_in_urls(
             result_list.extend(result)
         if error:
             errors.append(error)
-    return dict(Counter(result_list)), errors
+
+    result_dict.update(Counter(result_list))
+    return result_dict, errors
 
 
 # FIXME: doesn't always work
@@ -117,6 +121,7 @@ def count_patterns_in_urls_concurrently(
         results = pool.map(func, urls)
 
     # Combine results from all URLs
+    result_dict = {pattern: 0 for pattern in patterns}
     result_list = []
     errors = []
     for result, error in results:
@@ -125,7 +130,34 @@ def count_patterns_in_urls_concurrently(
         if error:
             errors.append(error)
 
-    return dict(Counter(result_list)), errors
+    result_dict.update(Counter(result_list))
+    return result_dict, errors
+
+
+def log_pattern_mentions(
+    urls: list[str], patterns: list[str], interval: int, stop_event: threading.Event
+):
+    """_summary_
+
+    :param urls: _description_
+    :type urls: list[str]
+    :param patterns: _description_
+    :type patterns: list[str]
+    :param interval: _description_
+    :type interval: int
+    :param stop_event: _description_
+    :type stop_event: threading.Event
+    """
+    previous_count = Counter(dict.fromkeys(patterns, 0))
+
+    while not stop_event.is_set():
+        current_count, _ = count_patterns_in_urls(urls, patterns)
+        for pattern in patterns:
+            last_t_count = current_count[pattern] - previous_count[pattern]
+            print(f"{pattern} mentioned {last_t_count} times last {interval} minutes")
+
+        previous_count = current_count
+        time.sleep(interval * 60)
 
 
 @app.route("/count-patterns", methods=["POST"])
@@ -150,6 +182,29 @@ def count_patterns():
     }
 
     return jsonify(response), 200
+
+
+@app.route("/count-patterns-interval", methods=["POST"])
+def count_patterns_interval():
+    data = request.get_json()
+
+    # Validation of JSON data
+    try:
+        urls = data["accounts"]
+        patterns = data["patterns"]
+        interval = int(data["interval"])
+    except (KeyError, TypeError, ValueError):
+        return json.dumps({"error": "Invalid JSON format"}), 400
+
+    # Starting a new background thread with timed interval
+    stop_event = threading.Event()
+    background_thread = threading.Thread(
+        target=log_pattern_mentions,
+        args=(urls, patterns, interval, stop_event),
+    )
+    background_thread.start()
+
+    return json.dumps({"message": "Pattern counting started."}), 200
 
 
 if __name__ == "__main__":
