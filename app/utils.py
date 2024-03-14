@@ -14,10 +14,15 @@ CHROME_OPTIONS.add_argument("--headless")
 
 
 def initialize_webdriver():
-    """_summary_
+    """
+    Initialize a new instance of the Chrome WebDriver.
 
-    :return: _description_
-    :rtype: _type_
+    This function creates and returns a new instance of the Chrome WebDriver using predefined Chrome options.
+    It requires the `selenium` WebDriver package and assumes that `CHROME_OPTIONS` are already set up
+    with the desired settings.
+
+    :return: An instance of Chrome WebDriver with the specified options.
+    :rtype: selenium.webdriver.Chrome
     """
     return webdriver.Chrome(options=CHROME_OPTIONS)
 
@@ -28,18 +33,29 @@ def collect_patterns_from_url(
     tag="a",
     class_name="css-1qaijid r-bcqeeo r-qvutc0 r-poiln3 r-1loqt21",
 ) -> tuple[list[str], str]:
-    """_summary_
+    """
+    Scans the HTML of a given URL for elements with specified tag and class name to 
+    extract and return all occurrences of given patterns.
+    
+    This function initializes a WebDriver instance to load the webpage and then utilizes 
+    BeautifulSoup for parsing the HTML content. The search is case-insensitive.
 
-    :param url: _description_
+    :param url: The web address to scan for patterns.
     :type url: str
-    :param patterns: _description_
+    :param patterns: A list of string patterns to search for within the webpage's text.
     :type patterns: list[str]
-    :param tag: _description_, defaults to "a"
+    :param tag: The type of HTML tag to look within for the patterns, defaults to "a".
     :type tag: str, optional
-    :param class_name: _description_, defaults to "css-1qaijid r-bcqeeo r-qvutc0 r-poiln3 r-1loqt21"
+    :param class_name: The class attribute of the HTML tag to narrow the search, defaults to 
+                       "css-1qaijid r-bcqeeo r-qvutc0 r-poiln3 r-1loqt21".
     :type class_name: str, optional
-    :return: _description_
+    :return: A tuple containing a list of matched patterns found and an error message 
+             (empty if no error occurs).
     :rtype: tuple[list[str], str]
+
+    The function returns an empty list and an error message if an exception occurs. 
+    Otherwise, it will return a list of found patterns (case converted to upper) 
+    and an empty string for the error message.
     """
     driver = initialize_webdriver()
     try:
@@ -72,13 +88,20 @@ def collect_patterns_from_url(
 def count_patterns_in_urls(
     urls: list[str], patterns: list[str]
 ) -> tuple[dict[str, int], list[str]]:
-    """_summary_
+    """
+    Counts the occurrences of each pattern within a list of URLs, 
+    and also records any errors encountered during the process.
 
-    :param urls: _description_
+    :param urls: A list of URLs to search for the patterns.
     :type urls: list[str]
-    :param patterns: _description_
+    :param patterns: A list of string patterns to count in the URLs.
     :type patterns: list[str]
-    :return: _description_
+    :return: A tuple containing a dictionary of pattern counts 
+             and a list of errors. Each key in the dictionary is a 
+             pattern from the input list, and the associated value is 
+             the count of occurrences of that pattern across all provided URLs.
+             The errors list contains any issues encountered, 
+             as strings describing the error.
     :rtype: tuple[dict[str, int], list[str]]
     """
     result_dict = {pattern: 0 for pattern in patterns}
@@ -131,15 +154,21 @@ def count_patterns_in_urls_concurrently(
 def log_pattern_mentions(
     urls: list[str], patterns: list[str], interval: int, stop_event: threading.Event
 ):
-    """_summary_
+    """
+    Periodically logs the number of times each pattern is mentioned on the web pages at the given URLs.
 
-    :param urls: _description_
+    This function runs a loop that, at each `interval` of minutes, checks the frequency of each
+    pattern in the `patterns` list within the content found at each URL in the `urls` list.
+    The loop continues until the `stop_event` is set. In each iteration, the function logs the increase
+    in the count of pattern mentions compared to the previous check.
+
+    :param urls: A list of URLs as strings to search for pattern occurrences.
     :type urls: list[str]
-    :param patterns: _description_
+    :param patterns: A list of string patterns to search for within the content of the URLs.
     :type patterns: list[str]
-    :param interval: _description_
+    :param interval: Time interval in minutes between each log output.
     :type interval: int
-    :param stop_event: _description_
+    :param stop_event: A threading.Event that, when set, will break the loop and stop the function.
     :type stop_event: threading.Event
     """
     previous_count = Counter(dict.fromkeys(patterns, 0))
