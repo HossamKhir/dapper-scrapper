@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+from config import logger
+
 CHROME_OPTIONS = Options()
 CHROME_OPTIONS.add_argument("--headless")
 
@@ -34,10 +36,10 @@ def collect_patterns_from_url(
     class_name="css-1qaijid r-bcqeeo r-qvutc0 r-poiln3 r-1loqt21",
 ) -> tuple[list[str], str]:
     """
-    Scans the HTML of a given URL for elements with specified tag and class name to 
+    Scans the HTML of a given URL for elements with specified tag and class name to
     extract and return all occurrences of given patterns.
-    
-    This function initializes a WebDriver instance to load the webpage and then utilizes 
+
+    This function initializes a WebDriver instance to load the webpage and then utilizes
     BeautifulSoup for parsing the HTML content. The search is case-insensitive.
 
     :param url: The web address to scan for patterns.
@@ -46,15 +48,15 @@ def collect_patterns_from_url(
     :type patterns: list[str]
     :param tag: The type of HTML tag to look within for the patterns, defaults to "a".
     :type tag: str, optional
-    :param class_name: The class attribute of the HTML tag to narrow the search, defaults to 
+    :param class_name: The class attribute of the HTML tag to narrow the search, defaults to
                        "css-1qaijid r-bcqeeo r-qvutc0 r-poiln3 r-1loqt21".
     :type class_name: str, optional
-    :return: A tuple containing a list of matched patterns found and an error message 
+    :return: A tuple containing a list of matched patterns found and an error message
              (empty if no error occurs).
     :rtype: tuple[list[str], str]
 
-    The function returns an empty list and an error message if an exception occurs. 
-    Otherwise, it will return a list of found patterns (case converted to upper) 
+    The function returns an empty list and an error message if an exception occurs.
+    Otherwise, it will return a list of found patterns (case converted to upper)
     and an empty string for the error message.
     """
     driver = initialize_webdriver()
@@ -89,18 +91,18 @@ def count_patterns_in_urls(
     urls: list[str], patterns: list[str]
 ) -> tuple[dict[str, int], list[str]]:
     """
-    Counts the occurrences of each pattern within a list of URLs, 
+    Counts the occurrences of each pattern within a list of URLs,
     and also records any errors encountered during the process.
 
     :param urls: A list of URLs to search for the patterns.
     :type urls: list[str]
     :param patterns: A list of string patterns to count in the URLs.
     :type patterns: list[str]
-    :return: A tuple containing a dictionary of pattern counts 
-             and a list of errors. Each key in the dictionary is a 
-             pattern from the input list, and the associated value is 
+    :return: A tuple containing a dictionary of pattern counts
+             and a list of errors. Each key in the dictionary is a
+             pattern from the input list, and the associated value is
              the count of occurrences of that pattern across all provided URLs.
-             The errors list contains any issues encountered, 
+             The errors list contains any issues encountered,
              as strings describing the error.
     :rtype: tuple[dict[str, int], list[str]]
     """
@@ -178,6 +180,9 @@ def log_pattern_mentions(
         for pattern in patterns:
             last_t_count = current_count[pattern] - previous_count[pattern]
             print(f"{pattern} mentioned {last_t_count} times last {interval} minutes")
+            logger.info(
+                f"{pattern} mentioned {last_t_count} times last {interval} minutes"
+            )
 
         previous_count = current_count
         time.sleep(interval * 60)

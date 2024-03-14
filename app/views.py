@@ -3,7 +3,8 @@ import threading
 
 from flask import jsonify, request
 
-from . import app
+from config import app
+
 from .utils import count_patterns_in_urls, log_pattern_mentions
 
 
